@@ -8,3 +8,4 @@ class Contato(db.Model):
     email = db.Column(db.String, nullable=True)
     assunto = db.Column(db.String, nullable=True)
     mensagem = db.Column(db.String, nullable=True)
+    respondido = db.Column(db.Integer, default=0)
