@@ -41,6 +41,12 @@ def contato_lista():
     return render_template('contato_lista.html', context=context)
 
 
+@app.route('/contato_detail/<int:id>/')
+def contatoDetail(id):
+    obj = Contato.query.get(id)
+
+    return render_template('contato_detail.html', obj=obj)
+
 
 #Maneira menos funcional
 @app.route('/contato_old/', methods=['GET', 'POST'])
