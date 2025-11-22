@@ -1,18 +1,26 @@
 from estudo import app
 from flask import render_template, url_for, request, redirect
 from estudo.models import Contato, db
-from estudo.forms import ContatoForm
+from estudo.forms import ContatoForm, UserForm, LoginForm
+from flask_login import login_user, logout_user, current_user
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def homepage():
     usuario = 'Alexsandro'
-    idade = 34
+    idade = 45
+
+    form = LoginForm()
+
+    if form.validate_on_submit():
+        user = form.login()
+        login_user(user, remember=True)
 
     context = {
-        'usuario': 'Alex',
-        'idade': 45
+        'usuario': usuario,
+        'idade': idade
     }
-    return render_template("index.html", context=context)
+
+    return render_template("index.html", context=context, form=form)
 
 
 @app.route('/contato/', methods=['GET', 'POST'])
@@ -47,6 +55,20 @@ def contatoDetail(id):
 
     return render_template('contato_detail.html', obj=obj)
 
+@app.route('/cadastro/', methods=['GET', 'POST'])
+def cadastro():
+    form = UserForm()
+    if form.validate_on_submit():
+        user = form.save()
+        login_user(user, remember=True)
+        return redirect(url_for('homepage'))
+    return render_template('cadastro.html', form=form)
+
+
+@app.route('/sair/')
+def logout():
+    logout_user()
+    return redirect(url_for('homepage'))
 
 #Maneira menos funcional
 @app.route('/contato_old/', methods=['GET', 'POST'])

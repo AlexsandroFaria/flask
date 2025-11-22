@@ -1,17 +1,42 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import data_required, Email
+from wtforms import StringField, SubmitField, PasswordField
+from wtforms.validators import data_required, Email, EqualTo, ValidationError
 
-from estudo import db
-from estudo.models import Contato
+from estudo import db, bcrypt
+from estudo.models import Contato, User
 
+
+class UserForm(FlaskForm):
+    nome = StringField('Nome', validators=[data_required()])
+    sobrenome = StringField('Sobrenome', validators=[data_required()])
+    email = StringField('E-mail', validators=[data_required(), Email()])
+    senha = PasswordField('Senha', validators=[data_required()])
+    confirmacao_senha = PasswordField('Confirmacao Senha', validators=[data_required() , EqualTo('senha')])
+    btnsubmit = SubmitField('Cadastrar')
+    
+    def validate_email(self, email):
+        if User.query.filter_by(email=email.data).first():
+            return ValidationError('Usuário já cadastrado com esse E-mail')
+    
+
+    def save(self):
+        senha = bcrypt.generate_password_hash(self.senha.data.encode('utf-8'))
+        user = User(
+            nome = self.nome.data,
+            sobrenome = self.sobrenome.data,
+            email = self.email.data,
+            senha=senha
+        )
+        db.session.add(user)
+        db.session.commit()
+        return user
 
 class ContatoForm(FlaskForm):
     nome = StringField('Nome', validators=[data_required()])
     email = StringField('E-mail', validators=[data_required(), Email()])
     assunto = StringField('Assunto', validators=[data_required()])
     mensagem = StringField('Mensagem', validators=[data_required()])
-    btnsubmit = SubmitField('Enviar', validators=[data_required()])
+    btnsubmit = SubmitField('Enviar')
 
     def save(self):
         contato = Contato(
@@ -23,3 +48,22 @@ class ContatoForm(FlaskForm):
 
         db.session.add(contato)
         db.session.commit()
+
+class LoginForm(FlaskForm):
+    email = StringField('E-mail', validators=[data_required(), Email()])
+    senha = PasswordField('Senha', validators=[data_required()])
+    btnsubmit = SubmitField('Login')
+
+    def login(self):
+        # Recuperar o usuário do email
+        user = User.query.filter_by(email=self.email.data).first()
+
+        #verificar se a senha é valida
+        if user:
+            if bcrypt.check_password_hash(user.senha, self.senha.data.encode('utf-8')):
+                #retorna o usuário
+                return user
+            else:
+                raise Exception('Senha incorreta')
+        else:
+            raise Exception('Usuário não encontrado')
