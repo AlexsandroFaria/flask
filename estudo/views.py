@@ -1,8 +1,8 @@
 from estudo import app
 from flask import render_template, url_for, request, redirect
-from estudo.models import Contato, db
-from estudo.forms import ContatoForm, UserForm, LoginForm
-from flask_login import login_user, logout_user, current_user
+from estudo.models import Contato, db, Post, PostComentarios
+from estudo.forms import ContatoForm, UserForm, LoginForm, PostForm, PostComentariosForm
+from flask_login import login_user, logout_user, current_user, login_required
 
 @app.route('/', methods=['GET', 'POST'])
 def homepage():
@@ -24,6 +24,7 @@ def homepage():
 
 
 @app.route('/contato/', methods=['GET', 'POST'])
+@login_required
 def contato():
     form = ContatoForm()
     context = {}
@@ -36,6 +37,7 @@ def contato():
 
 
 @app.route('/contato/lista/')
+@login_required
 def contato_lista():
     if request.method == 'GET':
         pesquisa = request.args.get('pesquisa', '')
@@ -50,6 +52,7 @@ def contato_lista():
 
 
 @app.route('/contato_detail/<int:id>/')
+@login_required
 def contatoDetail(id):
     obj = Contato.query.get(id)
 
@@ -66,9 +69,41 @@ def cadastro():
 
 
 @app.route('/sair/')
+@login_required
 def logout():
     logout_user()
     return redirect(url_for('homepage'))
+
+@app.route('/post/novo/', methods=['GET', 'POST'])
+@login_required
+def postNovo():
+    form = PostForm()
+
+    if form.validate_on_submit():
+        form.save(current_user.id)
+        return redirect(url_for('homepage'))
+
+    return render_template('post_novo.html', form=form)
+
+@app.route('/post/lista/')
+@login_required
+def PostLista():
+    posts = Post.query.all()
+
+    return render_template('post_lista.html', posts=posts)
+
+@app.route('/post/<int:id>', methods=['GET', 'POST'])
+@login_required
+def PostDetail(id):
+    post = Post.query.get(id)
+
+    form = PostComentariosForm()
+
+    if form.validate_on_submit():
+        form.save(current_user.id, id)
+        return redirect(url_for('PostDetail', id=id))
+    return render_template('post.html', post=post, form=form)
+
 
 #Maneira menos funcional
 @app.route('/contato_old/', methods=['GET', 'POST'])

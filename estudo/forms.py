@@ -1,9 +1,11 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField
+from wtforms import StringField, SubmitField, PasswordField, FileField
 from wtforms.validators import data_required, Email, EqualTo, ValidationError
+import os
+from werkzeug.utils import secure_filename
 
-from estudo import db, bcrypt
-from estudo.models import Contato, User
+from estudo import db, bcrypt, app
+from estudo.models import Contato, User, Post, PostComentarios
 
 
 class UserForm(FlaskForm):
@@ -67,3 +69,40 @@ class LoginForm(FlaskForm):
                 raise Exception('Senha incorreta')
         else:
             raise Exception('Usuário não encontrado')
+
+class PostForm(FlaskForm):
+    mensagem = StringField('Mensagem', validators=[data_required()])
+    imagem = FileField('Imagem', validators=[data_required()])
+    btnsubmit = SubmitField('Postar')
+
+    def save(self, user_id):
+        imagem = self.imagem.data
+        nome_seguro = secure_filename(imagem.filename)
+        post = Post(
+            mensagem = self.mensagem.data,
+            user_id = user_id,
+            imagem = nome_seguro
+        )
+
+        caminho = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)),
+            app.config['UPLOAD_FILES'],
+            'post',
+            nome_seguro
+        )
+        imagem.save(caminho)
+        db.session.add(post)
+        db.session.commit()
+
+class PostComentariosForm(FlaskForm):
+    comentario = StringField('Comentário', validators=[data_required()])
+    btnsubmit = SubmitField('Enviar')
+
+    def save(self, user_id, post_id):
+        comentario = PostComentarios(
+            comentario = self.comentario.data,
+            user_id = user_id,
+            post_id = post_id
+        )
+        db.session.add(comentario)
+        db.session.commit()
